@@ -130,15 +130,26 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
+          $exe = Join-Path $env:GITHUB_WORKSPACE "builds/windows/EchoesOfTheGrid.exe"
+
+          if (!(Test-Path -LiteralPath $exe -PathType Leaf)) {
+            throw "Windows executable not found: $exe"
+          }
+
+          Write-Host "Launching: $exe"
+
           $process = Start-Process `
-            -FilePath "builds/windows/EchoesOfTheGrid.exe" `
+            -FilePath $exe `
+            -WorkingDirectory (Split-Path -Parent $exe) `
             -ArgumentList "--headless", "--quit-after", "60" `
             -Wait `
             -PassThru
 
           if ($process.ExitCode -ne 0) {
-            exit $process.ExitCode
+            throw "Application exited with code $($process.ExitCode)"
           }
+
+          Write-Host "Windows startup verification passed."
 
       - name: Test macOS application startup
         if: runner.os == 'macOS'
