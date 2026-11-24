@@ -7,6 +7,7 @@ on:
     branches:
       - main
       - development
+      - chore/project-initialization
 
 permissions:
   contents: read
