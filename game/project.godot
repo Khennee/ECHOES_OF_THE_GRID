@@ -11,6 +11,7 @@ config_version=5
 [application]
 
 config/name="ECHOES OF THE GRID"
+run/main_scene="uid://dmeeps5u54is"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 config/icon="res://icon.svg"
 
@@ -43,3 +44,4 @@ enabled=PackedStringArray("res://addons/gut/plugin.cfg")
 rendering_device/driver.windows="d3d12"
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
+textures/vram_compression/import_etc2_astc=true

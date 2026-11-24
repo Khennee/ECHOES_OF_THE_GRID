@@ -1,0 +1,190 @@
+
+name: Desktop Builds
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - development
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GODOT_VERSION: "4.7.2"
+  PYTHON_VERSION: "3.12"
+
+jobs:
+  build:
+    name: Build (${{ matrix.platform }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: Windows
+            os: windows-latest
+          - platform: macOS
+            os: macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          lfs: true
+          persist-credentials: false
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+
+      - name: Install development dependencies
+        run: python -m pip install -r requirements-dev.txt
+
+      - name: Setup Godot
+        uses: chickensoft-games/setup-godot@v2.4.3
+        with:
+          version: ${{ env.GODOT_VERSION }}
+          use-dotnet: false
+          include-templates: true
+
+      - name: Resolve Godot executable on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $godot = Get-Command godot -ErrorAction Stop
+
+          if ($godot.CommandType -eq 'Application') {
+            "GODOT_PATH=$($godot.Source)" |
+              Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          } else {
+            throw "Godot executable could not be resolved."
+          }
+
+      - name: Run quality checks
+        run: pre-commit run --all-files --show-diff-on-failure
+
+      - name: Verify tracked files remain unchanged
+        run: git diff --exit-code
+
+      - name: Create build directories
+        shell: bash
+        run: mkdir -p builds/windows builds/macos
+
+      - name: Export Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          godot --headless --path game `
+            --export-release "Windows Desktop" `
+            ../builds/windows/EchoesOfTheGrid.exe
+
+          if ($LASTEXITCODE -ne 0) {
+            exit $LASTEXITCODE
+          }
+
+          if (!(Test-Path "builds/windows/EchoesOfTheGrid.exe")) {
+            throw "Windows executable was not generated."
+          }
+
+          if (!(Test-Path "builds/windows/libgdsqlite.windows.template_release.x86_64.dll")) {
+            throw "SQLite release DLL is missing."
+          }
+
+      - name: Export macOS
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          godot --headless --path game \
+            --export-release "macOS" \
+            ../builds/macos/EchoesOfTheGrid.app
+
+          test -d builds/macos/EchoesOfTheGrid.app
+
+      - name: Sign and verify macOS application
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          APP="builds/macos/EchoesOfTheGrid.app"
+          FRAMEWORK="$APP/Contents/Frameworks/libgdsqlite.macos.template_release.framework"
+
+          test -d "$FRAMEWORK"
+
+          codesign --force --sign - "$FRAMEWORK"
+          codesign --force --sign - "$APP"
+
+          codesign --verify --deep --strict --verbose=2 "$APP"
+
+      - name: Test Windows application startup
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $process = Start-Process `
+            -FilePath "builds/windows/EchoesOfTheGrid.exe" `
+            -ArgumentList "--headless", "--quit-after", "60" `
+            -Wait `
+            -PassThru
+
+          if ($process.ExitCode -ne 0) {
+            exit $process.ExitCode
+          }
+
+      - name: Test macOS application startup
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          APP="builds/macos/EchoesOfTheGrid.app"
+
+          EXECUTABLE=$(/usr/libexec/PlistBuddy \
+            -c "Print :CFBundleExecutable" \
+            "$APP/Contents/Info.plist")
+
+          file "$APP/Contents/MacOS/$EXECUTABLE"
+
+          "$APP/Contents/MacOS/$EXECUTABLE" \
+            --headless --quit-after 60
+
+      - name: Package Windows build
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Compress-Archive `
+            -Path builds/windows/* `
+            -DestinationPath builds/EchoesOfTheGrid-Windows-x64.zip `
+            -Force
+
+      - name: Package macOS build
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          ditto -c -k --sequesterRsrc --keepParent \
+            builds/macos/EchoesOfTheGrid.app \
+            builds/EchoesOfTheGrid-macOS-Universal.zip
+
+      - name: Upload Windows artifact
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: EchoesOfTheGrid-Windows-x64
+          path: builds/EchoesOfTheGrid-Windows-x64.zip
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload macOS artifact
+        if: runner.os == 'macOS'
+        uses: actions/upload-artifact@v4
+        with:
+          name: EchoesOfTheGrid-macOS-Universal
+          path: builds/EchoesOfTheGrid-macOS-Universal.zip
+          if-no-files-found: error
+          retention-days: 14
