@@ -1,0 +1,45 @@
+{
+  "files.encoding": "utf8",
+  "files.eol": "\n",
+  "files.insertFinalNewline": true,
+  "files.trimTrailingWhitespace": true,
+
+  "editor.detectIndentation": false,
+
+  "[gdscript]": {
+    "editor.tabSize": 4,
+    "editor.insertSpaces": false,
+    "editor.rulers": [100],
+    "editor.formatOnSave": false
+  },
+
+  "[json]": {
+    "editor.tabSize": 2,
+    "editor.insertSpaces": true
+  },
+
+  "[yaml]": {
+    "editor.tabSize": 2,
+    "editor.insertSpaces": true
+  },
+
+  "[markdown]": {
+    "files.trimTrailingWhitespace": false
+  },
+
+  "files.exclude": {
+    "**/.godot": true,
+    "**/*.gd.uid": true
+  },
+
+  "search.exclude": {
+    "**/.godot": true,
+    "**/.venv": true,
+    "**/addons": true
+  },
+
+  "files.watcherExclude": {
+    "**/.godot/**": true,
+    "**/.venv/**": true
+  }
+}

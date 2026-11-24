@@ -1,0 +1,75 @@
+name: Continuous Integration
+
+on:
+  push:
+  pull_request:
+    branches:
+      - main
+      - development
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GODOT_VERSION: "4.7.2"
+  PYTHON_VERSION: "3.12"
+
+jobs:
+  validation:
+    name: Validation (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+          - macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+          persist-credentials: false
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+
+      - name: Install development dependencies
+        run: python -m pip install -r requirements-dev.txt
+
+      - name: Setup Godot
+        uses: chickensoft-games/setup-godot@v2.4.3
+        with:
+          version: ${{ env.GODOT_VERSION }}
+          use-dotnet: false
+          include-templates: false
+
+      - name: Verify development environment
+        run: |
+          python --version
+          godot --version
+          pre-commit --version
+          gdlint --version
+          gdformat --version
+
+      - name: Validate pre-commit configuration
+        run: pre-commit validate-config
+
+      - name: Run all quality checks
+        run: pre-commit run --all-files --show-diff-on-failure
+
+      - name: Verify tracked files remain unchanged
+        run: git diff --exit-code
