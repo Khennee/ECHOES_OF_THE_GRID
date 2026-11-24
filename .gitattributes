@@ -49,3 +49,6 @@
 
 # Preserve third-party native framework files
 game/addons/godot-sqlite/bin/** -text whitespace=cr-at-eol
+
+# Exclude third-party addons from Git whitespace checks
+game/addons/** -whitespace
