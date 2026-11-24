@@ -86,21 +86,38 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          godot --headless --path game `
+          $buildDir = Join-Path $env:GITHUB_WORKSPACE "builds/windows"
+          $projectDir = Join-Path $env:GITHUB_WORKSPACE "game"
+          $exe = Join-Path $buildDir "EchoesOfTheGrid.exe"
+
+          New-Item -ItemType Directory -Force -Path $buildDir | Out-Null
+
+          Write-Host "Project directory: $projectDir"
+          Write-Host "Export destination: $exe"
+
+          & $env:GODOT_PATH --headless `
+            --path "$projectDir" `
             --export-release "Windows Desktop" `
-            ../builds/windows/EchoesOfTheGrid.exe
+            "$exe"
 
           if ($LASTEXITCODE -ne 0) {
-            exit $LASTEXITCODE
+            throw "Godot export failed with exit code $LASTEXITCODE"
           }
 
-          if (!(Test-Path "builds/windows/EchoesOfTheGrid.exe")) {
-            throw "Windows executable was not generated."
+          Write-Host "Generated build files:"
+          Get-ChildItem -Path $buildDir -Recurse
+
+          if (!(Test-Path -LiteralPath $exe -PathType Leaf)) {
+            throw "Windows executable was not generated: $exe"
           }
 
-          if (!(Test-Path "builds/windows/libgdsqlite.windows.template_release.x86_64.dll")) {
+          $dll = Join-Path $buildDir "libgdsqlite.windows.template_release.x86_64.dll"
+
+          if (!(Test-Path -LiteralPath $dll -PathType Leaf)) {
             throw "SQLite release DLL is missing."
           }
+
+          Write-Host "Windows export verification passed."
 
       - name: Export macOS
         if: runner.os == 'macOS'
