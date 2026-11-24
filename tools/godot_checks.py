@@ -27,10 +27,24 @@ def find_godot():
     print(f"Detected operating system: {system}", flush=True)
 
     # Check executables available in PATH.
-    for command in ("godot", "godot4", "godot.exe"):
+    commands = ["godot", "godot4"]
+
+    if system == "Windows":
+        commands = [
+            "godot_console.exe",
+            "godot.exe",
+            "godot.cmd",
+            "godot.bat",
+            "godot",
+            "godot4.exe",
+            "godot4",
+        ]
+
+    for command in commands:
         executable = shutil.which(command)
 
         if executable:
+            print(f"Godot found in PATH: {executable}", flush=True)
             return executable
 
     candidates = []

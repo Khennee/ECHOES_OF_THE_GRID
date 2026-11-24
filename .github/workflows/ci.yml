@@ -35,13 +35,13 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           lfs: true
           persist-credentials: false
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
@@ -56,6 +56,23 @@ jobs:
           version: ${{ env.GODOT_VERSION }}
           use-dotnet: false
           include-templates: false
+
+      - name: Resolve Godot executable on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $godot = Get-Command godot -ErrorAction Stop
+
+          Write-Host "Godot command type: $($godot.CommandType)"
+          Write-Host "Godot source: $($godot.Source)"
+          Write-Host "Godot definition: $($godot.Definition)"
+
+          if ($godot.CommandType -eq 'Application') {
+            "GODOT_PATH=$($godot.Source)" |
+              Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          } else {
+            throw "Godot did not resolve to an executable or command wrapper."
+          }
 
       - name: Verify development environment
         run: |
