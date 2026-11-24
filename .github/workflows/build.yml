@@ -36,6 +36,10 @@ jobs:
             os: macos-latest
 
     steps:
+      # --------------------------------------------------
+      # Environment Setup
+      # --------------------------------------------------
+
       - name: Checkout repository
         uses: actions/checkout@v5
         with:
@@ -65,12 +69,43 @@ jobs:
         run: |
           $godot = Get-Command godot -ErrorAction Stop
 
-          if ($godot.CommandType -eq 'Application') {
-            "GODOT_PATH=$($godot.Source)" |
-              Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          } else {
+          if ($godot.CommandType -ne 'Application') {
             throw "Godot executable could not be resolved."
           }
+
+          $godotDir = Split-Path -Parent $godot.Source
+
+          Write-Host "Resolved Godot command: $($godot.Source)"
+          Write-Host "Godot directory: $godotDir"
+
+          Get-ChildItem -Path $godotDir
+
+          $console = Get-ChildItem `
+            -Path $godotDir `
+            -Filter "*console.exe" `
+            -File `
+            -Recurse |
+            Select-Object -First 1
+
+          if ($console) {
+            $godotPath = $console.FullName
+          } else {
+            $godotPath = $godot.Source
+          }
+
+          if (!(Test-Path -LiteralPath $godotPath -PathType Leaf)) {
+            throw "Invalid Godot executable: $godotPath"
+          }
+
+          Write-Host "Selected Godot executable: $godotPath"
+
+          "GODOT_PATH=$godotPath" |
+            Out-File -FilePath $env:GITHUB_ENV `
+              -Encoding utf8 -Append
+
+      # --------------------------------------------------
+      # Development Validation
+      # --------------------------------------------------
 
       - name: Run quality checks
         run: pre-commit run --all-files --show-diff-on-failure
@@ -82,6 +117,10 @@ jobs:
         shell: bash
         run: mkdir -p builds/windows builds/macos
 
+      # --------------------------------------------------
+      # Windows Export
+      # --------------------------------------------------
+
       - name: Export Windows
         if: runner.os == 'Windows'
         shell: pwsh
@@ -90,18 +129,48 @@ jobs:
           $projectDir = Join-Path $env:GITHUB_WORKSPACE "game"
           $exe = Join-Path $buildDir "EchoesOfTheGrid.exe"
 
-          New-Item -ItemType Directory -Force -Path $buildDir | Out-Null
+          New-Item `
+            -ItemType Directory `
+            -Force `
+            -Path $buildDir |
+            Out-Null
 
+          Write-Host "Godot executable: $env:GODOT_PATH"
           Write-Host "Project directory: $projectDir"
           Write-Host "Export destination: $exe"
 
-          & $env:GODOT_PATH --headless `
-            --path "$projectDir" `
-            --export-release "Windows Desktop" `
-            "$exe"
+          $arguments = @(
+            "--headless"
+            "--path"
+            "`"$projectDir`""
+            "--export-release"
+            '"Windows Desktop"'
+            "`"$exe`""
+          )
 
-          if ($LASTEXITCODE -ne 0) {
-            throw "Godot export failed with exit code $LASTEXITCODE"
+          $stdout = Join-Path $env:RUNNER_TEMP "godot-export-stdout.log"
+          $stderr = Join-Path $env:RUNNER_TEMP "godot-export-stderr.log"
+
+          $process = Start-Process `
+            -FilePath $env:GODOT_PATH `
+            -WorkingDirectory $projectDir `
+            -ArgumentList $arguments `
+            -RedirectStandardOutput $stdout `
+            -RedirectStandardError $stderr `
+            -NoNewWindow `
+            -Wait `
+            -PassThru
+
+          Write-Host "Godot standard output:"
+          Get-Content $stdout
+
+          Write-Host "Godot standard error:"
+          Get-Content $stderr
+
+          Write-Host "Godot exit code: $($process.ExitCode)"
+
+          if ($process.ExitCode -ne 0) {
+            throw "Godot export failed with exit code $($process.ExitCode)"
           }
 
           Write-Host "Generated build files:"
@@ -114,26 +183,46 @@ jobs:
           $dll = Join-Path $buildDir "libgdsqlite.windows.template_release.x86_64.dll"
 
           if (!(Test-Path -LiteralPath $dll -PathType Leaf)) {
-            throw "SQLite release DLL is missing."
+            throw "SQLite release DLL is missing: $dll"
           }
 
           Write-Host "Windows export verification passed."
+
+      # --------------------------------------------------
+      # macOS Export
+      # --------------------------------------------------
 
       - name: Export macOS
         if: runner.os == 'macOS'
         shell: bash
         run: |
-          godot --headless --path game \
-            --export-release "macOS" \
-            ../builds/macos/EchoesOfTheGrid.app
+          set -euo pipefail
 
-          test -d builds/macos/EchoesOfTheGrid.app
+          PROJECT="$GITHUB_WORKSPACE/game"
+          APP="$GITHUB_WORKSPACE/builds/macos/EchoesOfTheGrid.app"
+
+          mkdir -p "$(dirname "$APP")"
+
+          echo "Project directory: $PROJECT"
+          echo "Export destination: $APP"
+
+          godot --headless \
+            --path "$PROJECT" \
+            --export-release "macOS" \
+            "$APP"
+
+          test -d "$APP"
+          test -f "$APP/Contents/Info.plist"
+
+          echo "macOS export verification passed."
 
       - name: Sign and verify macOS application
         if: runner.os == 'macOS'
         shell: bash
         run: |
-          APP="builds/macos/EchoesOfTheGrid.app"
+          set -euo pipefail
+
+          APP="$GITHUB_WORKSPACE/builds/macos/EchoesOfTheGrid.app"
           FRAMEWORK="$APP/Contents/Frameworks/libgdsqlite.macos.template_release.framework"
 
           test -d "$FRAMEWORK"
@@ -142,6 +231,10 @@ jobs:
           codesign --force --sign - "$APP"
 
           codesign --verify --deep --strict --verbose=2 "$APP"
+
+      # --------------------------------------------------
+      # Runtime Startup Verification
+      # --------------------------------------------------
 
       - name: Test Windows application startup
         if: runner.os == 'Windows'
@@ -162,6 +255,8 @@ jobs:
             -Wait `
             -PassThru
 
+          Write-Host "Application exit code: $($process.ExitCode)"
+
           if ($process.ExitCode -ne 0) {
             throw "Application exited with code $($process.ExitCode)"
           }
@@ -172,33 +267,68 @@ jobs:
         if: runner.os == 'macOS'
         shell: bash
         run: |
-          APP="builds/macos/EchoesOfTheGrid.app"
+          set -euo pipefail
+
+          APP="$GITHUB_WORKSPACE/builds/macos/EchoesOfTheGrid.app"
 
           EXECUTABLE=$(/usr/libexec/PlistBuddy \
             -c "Print :CFBundleExecutable" \
             "$APP/Contents/Info.plist")
 
-          file "$APP/Contents/MacOS/$EXECUTABLE"
+          BINARY="$APP/Contents/MacOS/$EXECUTABLE"
 
-          "$APP/Contents/MacOS/$EXECUTABLE" \
-            --headless --quit-after 60
+          test -f "$BINARY"
+
+          echo "Launching: $BINARY"
+
+          file "$BINARY"
+
+          "$BINARY" --headless --quit-after 60
+
+          echo "macOS startup verification passed."
+
+      # --------------------------------------------------
+      # Build Packaging
+      # --------------------------------------------------
 
       - name: Package Windows build
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
+          $buildDir = Join-Path $env:GITHUB_WORKSPACE "builds/windows"
+          $archive = Join-Path $env:GITHUB_WORKSPACE "builds/EchoesOfTheGrid-Windows-x64.zip"
+
           Compress-Archive `
-            -Path builds/windows/* `
-            -DestinationPath builds/EchoesOfTheGrid-Windows-x64.zip `
+            -Path "$buildDir/*" `
+            -DestinationPath $archive `
             -Force
+
+          if (!(Test-Path -LiteralPath $archive -PathType Leaf)) {
+            throw "Windows archive was not generated."
+          }
+
+          Get-Item $archive
 
       - name: Package macOS build
         if: runner.os == 'macOS'
         shell: bash
         run: |
+          set -euo pipefail
+
+          APP="$GITHUB_WORKSPACE/builds/macos/EchoesOfTheGrid.app"
+          ARCHIVE="$GITHUB_WORKSPACE/builds/EchoesOfTheGrid-macOS-Universal.zip"
+
           ditto -c -k --sequesterRsrc --keepParent \
-            builds/macos/EchoesOfTheGrid.app \
-            builds/EchoesOfTheGrid-macOS-Universal.zip
+            "$APP" \
+            "$ARCHIVE"
+
+          test -f "$ARCHIVE"
+
+          ls -lh "$ARCHIVE"
+
+      # --------------------------------------------------
+      # Artifact Upload
+      # --------------------------------------------------
 
       - name: Upload Windows artifact
         if: runner.os == 'Windows'
