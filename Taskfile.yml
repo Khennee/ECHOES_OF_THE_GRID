@@ -1,0 +1,113 @@
+
+version: "3"
+
+vars:
+  PYTHON: '{{if eq OS "windows"}}py -3.12{{else}}python3.12{{end}}'
+
+tasks:
+  # --------------------------------------------------
+  # Project Setup
+  # --------------------------------------------------
+
+  default:
+    desc: Display available development commands
+    cmds:
+      - task --list
+
+  setup:
+    desc: Initialize the project development environment
+    platforms:
+      - darwin
+      - windows
+    cmds:
+      - '{{.PYTHON}} tools/setup.py'
+
+  doctor:
+    desc: Diagnose development environment issues
+    cmds:
+      - '{{.PYTHON}} tools/doctor.py'
+
+  # --------------------------------------------------
+  # Game Development
+  # --------------------------------------------------
+
+  dev:
+    desc: Open the Godot project editor
+    cmds:
+      - '{{.PYTHON}} tools/dev.py dev'
+
+  run:
+    desc: Run the game
+    cmds:
+      - '{{.PYTHON}} tools/dev.py run'
+
+  import:
+    desc: Import Godot project resources
+    cmds:
+      - '{{.PYTHON}} tools/dev.py import'
+
+  # --------------------------------------------------
+  # Code Quality
+  # --------------------------------------------------
+
+  lint:
+    desc: Run GDScript linting
+    cmds:
+      - '{{.PYTHON}} tools/dev.py lint'
+
+  format:
+    desc: Automatically format GDScript files
+    cmds:
+      - '{{.PYTHON}} tools/dev.py format'
+
+  format:check:
+    desc: Check GDScript formatting without modifying files
+    cmds:
+      - '{{.PYTHON}} tools/dev.py format:check'
+
+  analyze:
+    desc: Run Godot static analysis
+    cmds:
+      - '{{.PYTHON}} tools/dev.py analyze'
+
+  # --------------------------------------------------
+  # Testing and Validation
+  # --------------------------------------------------
+
+  test:
+    desc: Run GUT automated tests
+    cmds:
+      - '{{.PYTHON}} tools/dev.py test'
+
+  check:
+    desc: Run all development quality checks
+    cmds:
+      - '{{.PYTHON}} tools/dev.py check'
+
+  # --------------------------------------------------
+  # Desktop Builds
+  # --------------------------------------------------
+
+  build:windows:
+    desc: Export Windows x64 release build
+    platforms:
+      - darwin
+      - windows
+    cmds:
+      - '{{.PYTHON}} tools/build.py windows'
+
+  build:macos:
+    desc: Export macOS Universal release build
+    platforms:
+      - darwin
+    cmds:
+      - '{{.PYTHON}} tools/build.py macos'
+
+  # --------------------------------------------------
+  # Maintenance
+  # --------------------------------------------------
+
+  clean:
+    desc: Remove generated build and export directories
+    cmds:
+      - '{{.PYTHON}} tools/clean.py'

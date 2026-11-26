@@ -1,0 +1,80 @@
+
+name: Feature Request
+description: Propose a new feature or improvement
+title: "[FEATURE] "
+labels:
+  - ENHANCEMENT
+
+body:
+  - type: input
+    id: linear_issue
+    attributes:
+      label: Linear Issue ID
+      description: Provide the associated Linear issue identifier, if available.
+      placeholder: SUP-123
+    validations:
+      required: false
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Feature Description
+      description: Describe the proposed feature or improvement.
+    validations:
+      required: true
+
+  - type: textarea
+    id: rationale
+    attributes:
+      label: Purpose and Rationale
+      description: Why should this feature be implemented?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: subsystem
+    attributes:
+      label: Affected Subsystem
+      options:
+        - Core Systems
+        - Player
+        - Storage
+        - Research
+        - Diagnostics
+        - Companion
+        - World and Environment
+        - User Interface
+        - Database
+        - Assessment
+        - Audio and Visuals
+        - Development Infrastructure
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Proposed Behavior
+      description: Explain how the feature should work.
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Proposed Acceptance Criteria
+      placeholder: |
+        - [ ] Expected functionality is implemented.
+        - [ ] Relevant interactions work correctly.
+        - [ ] Relevant tests pass.
+
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies or Constraints
+      placeholder: Related to SUP-123
+
+  - type: textarea
+    id: references
+    attributes:
+      label: References or Mockups
+      description: Attach relevant designs or supporting materials.

@@ -1,0 +1,9 @@
+{
+  "recommendations": [
+    "geequlim.godot-tools",
+    "EditorConfig.EditorConfig",
+    "github.vscode-github-actions",
+    "vivaxy.vscode-conventional-commits",
+    "eamodio.gitlens"
+  ]
+}

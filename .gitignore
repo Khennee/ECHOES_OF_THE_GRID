@@ -1,0 +1,39 @@
+# Godot generated files
+.godot/
+*.translation
+*.tmp
+
+# Exported game builds
+/builds/
+/exports/
+/game/builds/
+/game/exports/
+
+# Export credentials
+export_credentials.cfg
+
+# Python development environment
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+Desktop.ini
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Temporary editor files
+*.swp
+*.swo
+*.bak
+
+# Local editor history
+.history/

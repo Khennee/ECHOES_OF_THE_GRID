@@ -1,0 +1,64 @@
+name: Commit Validation
+
+on:
+  pull_request:
+    branches:
+      - main
+      - development
+
+permissions:
+  contents: read
+
+concurrency:
+  group: commit-validation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  commit-validation:
+    name: Conventional Commits
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+
+      - name: Install development dependencies
+        run: python -m pip install -r requirements-dev.txt
+
+      - name: Validate commit messages
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+
+          MESSAGE_FILE=$(mktemp)
+          trap 'rm -f "$MESSAGE_FILE"' EXIT
+
+          FAILED=0
+
+          while IFS= read -r SHA; do
+            echo "Validating commit: $SHA"
+
+            git log -1 --format=%B "$SHA" > "$MESSAGE_FILE"
+
+            if ! pre-commit run conventional-pre-commit \
+              --hook-stage commit-msg \
+              --commit-msg-filename "$MESSAGE_FILE"; then
+              FAILED=1
+            fi
+          done < <(git rev-list --reverse --no-merges "$BASE_SHA..$HEAD_SHA")
+
+          exit "$FAILED"
