@@ -1,0 +1,63 @@
+[gd_scene format=3 uid="uid://kdrqblmnu7mg"]
+
+[ext_resource type="Script" uid="uid://dulyi8ba7hi8" path="res://ui/main-menu/main_menu.gd" id="1_umu7m"]
+[ext_resource type="Texture2D" uid="uid://dinua36byxu51" path="res://assets/ui/main-menu/main-menu-bg.png" id="2_e8l02"]
+
+[node name="MainMenu" type="Control" unique_id=2147265875]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_umu7m")
+
+[node name="Background" type="TextureRect" parent="." unique_id=1491227698]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("2_e8l02")
+expand_mode = 1
+stretch_mode = 6
+
+[node name="CenterContainer" type="CenterContainer" parent="." unique_id=1439832422]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -100.0
+offset_top = -87.0
+offset_right = 100.0
+offset_bottom = 87.0
+grow_horizontal = 2
+grow_vertical = 2
+pivot_offset = Vector2(635, 366)
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer" unique_id=2924094]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="StartButton" type="Button" parent="CenterContainer/VBoxContainer" unique_id=1524084114]
+custom_minimum_size = Vector2(200, 50)
+layout_mode = 2
+text = "Start Game"
+
+[node name="SettingsButton" type="Button" parent="CenterContainer/VBoxContainer" unique_id=218744525]
+custom_minimum_size = Vector2(200, 50)
+layout_mode = 2
+size_flags_horizontal = 4
+text = "Settings"
+
+[node name="QuitButton" type="Button" parent="CenterContainer/VBoxContainer" unique_id=1086571609]
+custom_minimum_size = Vector2(200, 50)
+layout_mode = 2
+text = "Quit Game"
+
+[connection signal="pressed" from="CenterContainer/VBoxContainer/StartButton" to="." method="_on_start_button_pressed"]
+[connection signal="pressed" from="CenterContainer/VBoxContainer/SettingsButton" to="." method="_on_settings_button_pressed"]
+[connection signal="pressed" from="CenterContainer/VBoxContainer/QuitButton" to="." method="_on_quit_button_pressed"]
