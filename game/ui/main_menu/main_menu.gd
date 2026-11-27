@@ -15,6 +15,8 @@ func button_sfx() -> void:
 func _on_start_button_pressed() -> void:
 	button_sfx()
 	print("Game Started!")
+	get_tree().change_scene_to_file("res://cutscenes/opening/opening_cutscene.tscn")
+	$BackgroundMusic.stop()
 
 
 func _on_settings_button_pressed() -> void:
