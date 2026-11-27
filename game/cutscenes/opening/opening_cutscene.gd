@@ -7,6 +7,7 @@ var current_slide: int = 1
 
 
 func _ready() -> void:
+	$BackgroundMusic.play()
 	show_slide()
 
 
