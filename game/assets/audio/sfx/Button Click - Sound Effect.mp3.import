@@ -1,0 +1,19 @@
+[remap]
+
+importer="mp3"
+type="AudioStreamMP3"
+uid="uid://butu0v1oewr2f"
+path="res://.godot/imported/Button Click - Sound Effect.mp3-65e74843f21a3751bb57e53b43a266b6.mp3str"
+
+[deps]
+
+source_file="res://assets/audio/sfx/Button Click - Sound Effect.mp3"
+dest_files=["res://.godot/imported/Button Click - Sound Effect.mp3-65e74843f21a3751bb57e53b43a266b6.mp3str"]
+
+[params]
+
+loop=false
+loop_offset=0
+bpm=0
+beat_count=0
+bar_beats=4

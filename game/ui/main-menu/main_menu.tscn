@@ -2,6 +2,8 @@
 
 [ext_resource type="Script" uid="uid://dulyi8ba7hi8" path="res://ui/main-menu/main_menu.gd" id="1_umu7m"]
 [ext_resource type="Texture2D" uid="uid://dinua36byxu51" path="res://assets/ui/main-menu/main-menu-bg.png" id="2_e8l02"]
+[ext_resource type="AudioStream" uid="uid://b0pjmt43fep88" path="res://assets/audio/music/main-menu-eerie-bg.mp3" id="3_nvasf"]
+[ext_resource type="AudioStream" uid="uid://butu0v1oewr2f" path="res://assets/audio/sfx/Button Click - Sound Effect.mp3" id="4_raq58"]
 
 [node name="MainMenu" type="Control" unique_id=2147265875]
 layout_mode = 3
@@ -57,6 +59,16 @@ text = "Settings"
 custom_minimum_size = Vector2(200, 50)
 layout_mode = 2
 text = "Quit Game"
+
+[node name="BackgroundMusic" type="AudioStreamPlayer" parent="." unique_id=667144102]
+stream = ExtResource("3_nvasf")
+volume_db = -10.0
+autoplay = true
+playback_type = 1
+parameters/looping = true
+
+[node name="ButtonSFX" type="AudioStreamPlayer" parent="." unique_id=1324080264]
+stream = ExtResource("4_raq58")
 
 [connection signal="pressed" from="CenterContainer/VBoxContainer/StartButton" to="." method="_on_start_button_pressed"]
 [connection signal="pressed" from="CenterContainer/VBoxContainer/SettingsButton" to="." method="_on_settings_button_pressed"]
